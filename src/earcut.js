@@ -986,12 +986,13 @@ function orient(ax, ay, bx, by, cx, cy) {
 function inCircle(ax, ay, bx, by, cx, cy, px, py) {
     const dx = ax - px, dy = ay - py, ex = bx - px, ey = by - py, fx = cx - px, fy = cy - py;
     const ap = dx * dx + dy * dy, bp = ex * ex + ey * ey, cp = fx * fx + fy * fy;
-    const s1 = dx * (ey * cp - bp * fy), s2 = dy * (ex * cp - bp * fx), s3 = ap * (ex * fy - ey * fx);
-    // A near-cocircular quad is a legal Delaunay tie, but roundoff can make the determinant a tiny
-    // nonzero of either sign — and inconsistently so for an edge and its flip, which cascades into an
-    // endless flip/flip-back loop. Treat any result within a relative margin of the term magnitudes
-    // as a tie (no flip): this breaks the cycle at its source, with no extra predicate cost.
-    return s1 - s2 + s3 <= 1e-12 * (Math.abs(s1) + Math.abs(s2) + Math.abs(s3));
+    // A near-cocircular quad is a legal Delaunay tie, but roundoff can flag both an edge and its
+    // flip as illegal, cascading into an endless flip loop (#205) — so treat a determinant within
+    // a small margin of zero as a tie. The determinant's worst-case roundoff error is provably
+    // below 9e-16·(ap + bp + cp)² (Shewchuk-style bound), so the margin guarantees every executed
+    // flip is illegal in exact arithmetic, and Lawson flipping always terminates.
+    const s = ap + bp + cp;
+    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) <= 1e-13 * s * s;
 }
 
 /** @param {number} e */
