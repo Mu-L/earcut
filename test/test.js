@@ -187,6 +187,23 @@ test('refine preserves a concave polygon', () => {
     assert.equal(deviation(vertices, null, 2, triangles), 0);
 });
 
+test('refine terminates on near-cocircular points', {timeout: 5000}, () => {
+    // Four near-cocircular points make the non-robust inCircle test give inconsistent signs for an
+    // edge and its flip; without the tie margin the Lawson cascade flips one edge back and forth
+    // forever. Should return with a valid mesh of unchanged size and zero deviation.
+    const vertices = [
+        127.65906365022843, 9.336137742499535, 124.21725103117963, 30.888097161477972,
+        91.35514946628345, 89.65621376119454, 40.10446780041529, 121.5550560957686,
+        -110.83205604043928, 64.03323632184248, -127.20394987965459, -14.253249980770189,
+        61.074962259031416, -112.48932831632469, 127.37846573978545, -12.598669206638515,
+        127.77010311801033, -7.668164657400608];
+    const triangles = earcut(vertices);
+    const length = triangles.length;
+    refine(triangles, vertices);
+    assert.equal(triangles.length, length);
+    assert.ok(deviation(vertices, null, 2, triangles) < 1e-15);
+});
+
 test('refine legalizes all convex interior edges in earcut fixture', () => {
     const coords = JSON.parse(fs.readFileSync(new URL('fixtures/earcut.json', import.meta.url)));
     const data = flatten(coords);
